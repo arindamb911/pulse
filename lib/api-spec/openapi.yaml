@@ -1,0 +1,281 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Pulse Emergency Healthcare API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: hospitals
+    description: Hospital operations
+  - name: emergency
+    description: Emergency operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /hospitals:
+    get:
+      operationId: listHospitals
+      tags: [hospitals]
+      summary: List all hospitals
+      description: Returns a list of hospitals, optionally filtered by category and/or search query
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [emergency, cardiac, children, trauma, general]
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: lat
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: lng
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+      responses:
+        "200":
+          description: List of hospitals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Hospital"
+
+  /hospitals/{id}:
+    get:
+      operationId: getHospital
+      tags: [hospitals]
+      summary: Get hospital by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Hospital details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Hospital"
+        "404":
+          description: Hospital not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /hospitals/nearby:
+    get:
+      operationId: getNearbyHospitals
+      tags: [hospitals]
+      summary: Get nearest hospitals sorted by distance
+      description: Returns hospitals sorted by proximity to given coordinates, limited for emergency use
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: Nearby hospitals sorted by distance
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Hospital"
+
+  /emergency/contacts:
+    get:
+      operationId: listEmergencyContacts
+      tags: [emergency]
+      summary: List emergency contacts
+      description: Returns emergency numbers (ambulance, police, fire, poison control, etc.)
+      responses:
+        "200":
+          description: List of emergency contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmergencyContact"
+
+  /emergency/summary:
+    get:
+      operationId: getEmergencySummary
+      tags: [emergency]
+      summary: Emergency dashboard summary
+      description: Returns counts of hospitals by category and total count for dashboard display
+      responses:
+        "200":
+          description: Summary statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmergencySummary"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Hospital:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        address:
+          type: string
+        phone:
+          type: string
+        category:
+          type: string
+          enum: [emergency, cardiac, children, trauma, general]
+        lat:
+          type: number
+          format: double
+        lng:
+          type: number
+          format: double
+        distance:
+          type: number
+          format: double
+          description: Distance in km (populated when lat/lng provided)
+        travelTime:
+          type: string
+          description: Estimated travel time (e.g. "8 min")
+        isOpen24h:
+          type: boolean
+        rating:
+          type: number
+          format: double
+        bedAvailability:
+          type: string
+          enum: [available, limited, full]
+        specialties:
+          type: array
+          items:
+            type: string
+        googleMapsUrl:
+          type: string
+        emergencyCapable:
+          type: boolean
+      required:
+        - id
+        - name
+        - address
+        - phone
+        - category
+        - lat
+        - lng
+        - isOpen24h
+        - rating
+        - bedAvailability
+        - specialties
+        - emergencyCapable
+
+    EmergencyContact:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        number:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+      required:
+        - id
+        - name
+        - number
+        - description
+        - icon
+
+    EmergencySummary:
+      type: object
+      properties:
+        totalHospitals:
+          type: integer
+        emergencyCount:
+          type: integer
+        cardiacCount:
+          type: integer
+        childrenCount:
+          type: integer
+        traumaCount:
+          type: integer
+        generalCount:
+          type: integer
+        open24hCount:
+          type: integer
+      required:
+        - totalHospitals
+        - emergencyCount
+        - cardiacCount
+        - childrenCount
+        - traumaCount
+        - generalCount
+        - open24hCount
