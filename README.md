@@ -1,7 +1,4 @@
-# [Project name]
-
-
-Pulse
+# [Pulse]
 
 ## Run & Operate
 
